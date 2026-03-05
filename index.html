@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Latifi League Bolo 2026 | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .f1-card { background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; transition: all 0.3s ease; }
+        .f1-card:hover { border-color: #ef4444; }
+        .table-gradient { background: linear-gradient(to bottom, #1e293b, #0f172a); }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div id="market-banner" class="text-center py-2 text-xs font-bold uppercase tracking-widest">
+        SINCRONIZZAZIONE...
+    </div>
+
+    <div class="max-w-7xl mx-auto p-4 lg:p-8">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-10 border-b border-slate-700 pb-6">
+            <div>
+                <h1 class="text-4xl font-black tracking-tighter italic text-white underline decoration-red-600">LATIFI LEAGUE BOLO</h1>
+                <p class="text-slate-400 font-mono text-[10px] mt-1">SISTEMA DI MONITORAGGIO PERFORMANCE // STAGIONE 2026</p>
+            </div>
+            <div id="last-update" class="mt-4 md:mt-0 text-[10px] text-slate-500 font-mono italic bg-slate-800 px-3 py-1 rounded-full border border-slate-700"></div>
+        </header>
+
+        <div class="grid grid-cols-12 gap-6">
+            <aside class="col-span-12 lg:col-span-3">
+                <div class="f1-card p-5 shadow-2xl sticky top-6">
+                    <h2 class="text-lg font-black mb-6 flex items-center gap-2 text-red-500 uppercase italic">🏆 Top 5 Live</h2>
+                    <div id="side-ranking" class="space-y-5">
+                        </div>
+                </div>
+            </aside>
+
+            <main class="col-span-12 lg:col-span-9 space-y-6">
+                <div class="f1-card p-6 shadow-2xl">
+                    <h2 class="text-sm font-bold mb-4 uppercase tracking-widest text-slate-400">Analisi Progressiva Punteggi</h2>
+                    <div class="relative h-[350px]">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="f1-card shadow-2xl overflow-hidden border-t-4 border-t-red-600">
+                    <div class="overflow-x-auto">
+                        <table id="data-table" class="w-full text-left text-[11px] md:text-xs border-collapse">
+                            </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTasm2yfZ9J9ipOU-dI4WJSyBIqFedv7zkWf4MPev-PSjSPD8ZV9PIrEnojJMvzAVU3KMAupCvh3Gyo/pub?gid=1813522590&single=true&output=csv';
+        
+        const raceDeadlines = [
+            { name: "Australia", date: "2026-03-07T06:00:00Z" },
+            { name: "China", date: "2026-03-21T07:00:00Z" }
+        ];
+
+        async function initDashboard() {
+            try {
+                updateMarketStatus();
+                const response = await fetch(CSV_URL);
+                const rawData = await response.text();
+                const rows = rawData.split('\n').map(row => row.split(',').map(c => c.trim())).filter(r => r.length > 1);
+                
+                const headers = rows[0];
+                const teams = rows.slice(1);
+
+                renderTable(headers, teams);
+                renderLeaderboard(teams);
+                renderChart(headers, teams);
+                document.getElementById('last-update').innerText = "SYNC: " + new Date().toLocaleTimeString();
+            } catch (e) { console.error(e); }
+        }
+
+        function updateMarketStatus() {
+            const now = new Date();
+            const nextGP = raceDeadlines.find(gp => new Date(gp.date) > now);
+            const banner = document.getElementById('market-banner');
+            if (nextGP) {
+                banner.innerText = `🟢 Mercato Aperto: ${nextGP.name.toUpperCase()} Deadline Sabato Mattina`;
+                banner.className = "bg-green-600 text-white text-center py-2 text-[10px] font-bold uppercase tracking-widest";
+            } else {
+                banner.innerText = "🔴 Mercato Chiuso: Sessione di Gara in corso";
+                banner.className = "bg-red-600 text-white text-center py-2 text-[10px] font-bold uppercase tracking-widest animate-pulse";
+            }
+        }
+
+        function renderTable(headers, teams) {
+            const table = document.getElementById('data-table');
+            let html = `<thead class="bg-slate-900 text-slate-400 font-mono uppercase"><tr>`;
+            headers.forEach(h => html += `<th class="p-3 border-b border-slate-700">${h}</th>`);
+            html += `</tr></thead><tbody class="divide-y divide-slate-800">`;
+            teams.forEach(row => {
+                html += `<tr class="hover:bg-slate-800/40 transition-colors">`;
+                row.forEach((cell, i) => {
+                    const isTotal = i === headers.length - 1;
+                    html += `<td class="p-3 ${isTotal ? 'font-bold text-red-500 bg-red-500/5' : ''}">${cell}</td>`;
+                });
+                html += `</tr>`;
+            });
+            table.innerHTML = html + `</tbody>`;
+        }
+
+        function renderLeaderboard(teams) {
+            const container = document.getElementById('side-ranking');
+            const sorted = [...teams].sort((a, b) => parseFloat(b[b.length-1]) - parseFloat(a[a.length-1])).slice(0, 5);
+            container.innerHTML = sorted.map((t, i) => `
+                <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg font-black italic text-red-600">#${i+1}</span>
+                        <div>
+                            <p class="font-bold text-xs uppercase">${t[1]}</p>
+                            <p class="text-[9px] text-slate-500 font-mono">${t[0]}</p>
+                        </div>
+                    </div>
+                    <span class="font-mono font-bold text-white text-xs">${t[t.length-1]}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderChart(headers, teams) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            const gpLabels = headers.slice(2, -1);
+            const datasets = teams.map((team, idx) => {
+                let cumulative = 0;
+                return {
+                    label: team[1],
+                    data: team.slice(2, -1).map(p => cumulative += (parseFloat(p) || 0)),
+                    borderColor: `hsl(${(idx * 137) % 360}, 70%, 50%)`,
+                    borderWidth: 2, tension: 0.3, pointRadius: 2
+                };
+            });
+            new Chart(ctx, { type: 'line', data: { labels: gpLabels, datasets }, options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { legend: { display: false } },
+                scales: { y: { grid: { color: '#334155' } }, x: { grid: { display: false } } }
+            }});
+        }
+        initDashboard();
+    </script>
+</body>
+</html>
