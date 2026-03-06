@@ -9,13 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .f1-card { background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; transition: all 0.3s ease; }
-        .f1-card:hover { border-color: #ef4444; }
-        .table-gradient { background: linear-gradient(to bottom, #1e293b, #0f172a); }
+        canvas { max-width: 100% !important; }
     </style>
 </head>
-<body class="antialiased">
-
 <body class="antialiased">
 
     <div id="market-banner" class="text-center py-2 text-[10px] font-bold uppercase tracking-widest transition-all duration-500 bg-slate-800 text-slate-400">
@@ -23,7 +19,6 @@
     </div>
 
     <div class="max-w-7xl mx-auto p-4 lg:p-8">
-        
         <header class="mb-10">
             <div class="flex flex-col md:flex-row justify-between items-end mb-6 border-b border-slate-800 pb-4">
                 <div>
@@ -49,7 +44,7 @@
 
                     <div class="flex flex-col items-center md:items-end bg-black/40 backdrop-blur-md p-6 rounded-xl border border-white/5 min-w-[280px]">
                         <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-2 italic">Prossimo Appuntamento</p>
-                        <p id="hero-next-session" class="text-white font-mono text-2xl font-bold tracking-tight text-center md:text-right italic">---</p>
+                        <p id="hero-next-session" class="text-white font-mono text-2xl font-bold tracking-tight text-center md:text-right italic text-red-500">---</p>
                         <div class="mt-4 pt-4 border-t border-white/10 w-full text-center md:text-right">
                             <p id="hero-deadline" class="text-[10px] font-mono text-slate-400 uppercase tracking-tighter">Loading Deadline...</p>
                         </div>
@@ -59,43 +54,27 @@
         </header>
 
         <div class="grid grid-cols-12 gap-6">
-            
             <aside class="col-span-12 lg:col-span-3">
                 <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl sticky top-6">
-                    <h2 class="text-sm font-black mb-6 flex items-center gap-2 text-red-500 uppercase italic tracking-wider">
-                        🏆 Top 5 Live
-                    </h2>
+                    <h2 class="text-sm font-black mb-6 flex items-center gap-2 text-red-500 uppercase italic tracking-wider">🏆 Top 5 Live</h2>
                     <div id="side-ranking" class="space-y-5">
-                        <div class="animate-pulse flex space-x-4">
-                            <div class="flex-1 space-y-4 py-1">
-                                <div class="h-4 bg-slate-800 rounded"></div>
-                                <div class="h-4 bg-slate-800 rounded w-5/6"></div>
-                            </div>
-                        </div>
+                        <p class="text-xs text-slate-500">Caricamento classifica...</p>
                     </div>
                 </div>
             </aside>
 
             <main class="col-span-12 lg:col-span-9 space-y-6">
-                
                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 italic">Performance Progressiva</h2>
-                        <span class="text-[10px] font-mono text-slate-600 uppercase">Season 2026 Data</span>
-                    </div>
-                    <div class="relative h-[350px]">
-                        <canvas id="mainChart"></canvas>
-                    </div>
+                    <h2 class="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 italic mb-6">Performance Progressiva</h2>
+                    <div class="h-[350px]"><canvas id="mainChart"></canvas></div>
                 </div>
 
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden border-t-4 border-t-red-600">
                     <div class="p-4 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
                         <h3 class="text-xs font-bold uppercase italic text-white">Classifica Completa</h3>
-                        <span class="text-[10px] text-slate-500 font-mono italic">Scorri orizzontalmente su mobile →</span>
                     </div>
                     <div class="overflow-x-auto">
-                        <table id="data-table" class="w-full text-left text-[11px] md:text-xs border-collapse font-medium">
-                            </table>
+                        <table id="data-table" class="w-full text-left text-[11px] md:text-xs border-collapse font-medium"></table>
                     </div>
                 </div>
             </main>
@@ -103,79 +82,135 @@
     </div>
 
     <script>
-        // CONFIGURAZIONE: Sostituisci con i tuoi dati reali
-const DOC_BASE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTasm2yfZ9J9ipOU-dI4WJSyBIqFedv7zkWf4MPev-PSjSPD8ZV9PIrEnojJMvzAVU3KMAupCvh3Gyo/pub?output=csv';
-const GID_SCHEDULE = '1813522590'; 
-const GID_EXPORT_SITO = '1813522590'; // Lo trovi nell'URL del foglio "Export Sito"
+        const DOC_BASE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTasm2yfZ9J9ipOU-dI4WJSyBIqFedv7zkWf4MPev-PSjSPD8ZV9PIrEnojJMvzAVU3KMAupCvh3Gyo/pub?output=csv';
+        const GID_SCHEDULE = '2005951231'; 
+        const GID_EXPORT_SITO = '1813522590'; // <--- CAMBIA QUESTO CON IL GID DI "EXPORT SITO"
 
-async function initDashboard() {
-    try {
-        // 1. Caricamento parallelo dei due fogli
-        const [resSchedule, resPunteggi] = await Promise.all([
-            fetch(`${DOC_BASE_URL}&gid=${GID_SCHEDULE}`),
-            fetch(`${DOC_BASE_URL}&gid=${GID_EXPORT_SITO}`)
-        ]);
+        let mainChart = null;
 
-        const csvSchedule = await resSchedule.text();
-        const csvPunteggi = await resPunteggi.text();
+        async function initDashboard() {
+            try {
+                const [resSchedule, resPunteggi] = await Promise.all([
+                    fetch(`${DOC_BASE_URL}&gid=${GID_SCHEDULE}`),
+                    fetch(`${DOC_BASE_URL}&gid=${GID_EXPORT_SITO}`)
+                ]);
 
-        // 2. Parsing dello Schedule (Dati dallo script Calendar)
-        const scheduleRows = csvSchedule.split('\n').map(r => r.split(',').map(c => c.trim()));
-        const scheduleData = scheduleRows.slice(1).map(r => ({
-            gp: r[0], fp1: r[1], fp2: r[2], fp3: r[3], sprint: r[4], quali: r[5], race: r[6], deadline: r[7]
-        })).filter(r => r.gp);
+                const csvSchedule = await resSchedule.text();
+                const csvPunteggi = await resPunteggi.text();
 
-        // 3. Parsing dei Punteggi (Tabella Team)
-        const punteggiRows = csvPunteggi.split('\n').map(r => r.split(',').map(c => c.trim())).filter(r => r.length > 1);
-        const headers = punteggiRows[0];
-        const teams = punteggiRows.slice(1);
+                const scheduleRows = csvSchedule.split('\n').map(r => r.split(',').map(c => c.trim()));
+                const punteggiRows = csvPunteggi.split('\n').map(r => r.split(',').map(c => c.trim())).filter(r => r.length > 1);
 
-        // 4. Update UI
-        updateHero(scheduleData);
-        renderTable(headers, teams);
-        renderLeaderboard(teams);
-        renderChart(headers, teams);
+                const scheduleData = scheduleRows.slice(1).map(r => ({
+                    gp: r[0], fp1: r[1], fp2: r[2], fp3: r[3], sprint: r[4], quali: r[5], race: r[6], deadline: r[7]
+                })).filter(r => r.gp);
 
-        document.getElementById('last-update').innerText = "SYNC: " + new Date().toLocaleTimeString();
-    } catch (e) {
-        console.error("Errore Caricamento:", e);
-    }
-}
+                const headers = punteggiRows[0];
+                const teams = punteggiRows.slice(1);
 
-function updateHero(schedule) {
-    const now = new Date();
-    const currentGP = schedule.find(gp => gp.race && new Date(gp.race) > now);
-    if (!currentGP) return;
+                updateHero(scheduleData);
+                renderTable(headers, teams);
+                renderLeaderboard(teams);
+                renderChart(headers, teams);
 
-    // Aggiorna Banner Mercato
-    const banner = document.getElementById('market-banner');
-    const deadline = new Date(currentGP.deadline);
-    
-    if (now < deadline) {
-        banner.innerText = `🟢 MERCATO APERTO - CHIUSURA: ${deadline.toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}`;
-        banner.className = "bg-green-600 text-white py-2 text-center font-bold text-[10px] uppercase tracking-widest";
-    } else {
-        banner.innerText = "🔴 MERCATO CHIUSO - FORMAZIONI BLOCCATE";
-        banner.className = "bg-red-600 text-white py-2 text-center font-bold text-[10px] uppercase tracking-widest animate-pulse";
-    }
+                document.getElementById('last-update').innerText = "SYNC: " + new Date().toLocaleTimeString();
+            } catch (e) {
+                console.error("Errore Caricamento:", e);
+                document.getElementById('market-banner').innerText = "⚠️ ERRORE CONNESSIONE DATI";
+            }
+        }
 
-    // Aggiorna Info Gara nell'Hero
-    document.getElementById('hero-gp-name').innerText = currentGP.gp.toUpperCase();
-    
-    // Trova la prossima sessione
-    const sessions = [
-        { n: "FP1", t: currentGP.fp1 }, { n: "FP2", t: currentGP.fp2 }, { n: "FP3", t: currentGP.fp3 },
-        { n: "QUALIFICHE", t: currentGP.quali }, { n: "SPRINT", t: currentGP.sprint }, { n: "GARA", t: currentGP.race }
-    ].filter(s => s.t && new Date(s.t) > now);
+        function updateHero(schedule) {
+            const now = new Date();
+            const currentGP = schedule.find(gp => gp.race && new Date(gp.race) > now);
+            if (!currentGP) return;
 
-    if (sessions.length > 0) {
-        const next = sessions[0];
-        document.getElementById('hero-next-session').innerText = `${next.n}: ${new Date(next.t).toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}`;
-    }
-}
+            const banner = document.getElementById('market-banner');
+            const deadline = new Date(currentGP.deadline);
+            
+            if (now < deadline) {
+                banner.innerText = `🟢 MERCATO APERTO - CHIUSURA: ${deadline.toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}`;
+                banner.className = "bg-green-600 text-white py-2 text-center font-bold text-[10px] uppercase tracking-widest";
+            } else {
+                banner.innerText = "🔴 MERCATO CHIUSO - FORMAZIONI BLOCCATE";
+                banner.className = "bg-red-600 text-white py-2 text-center font-bold text-[10px] uppercase tracking-widest animate-pulse";
+            }
 
-// Avvia tutto al caricamento
-initDashboard();
+            document.getElementById('hero-gp-name').innerText = currentGP.gp.toUpperCase();
+            
+            const sessions = [
+                { n: "FP1", t: currentGP.fp1 }, { n: "FP2", t: currentGP.fp2 }, { n: "FP3", t: currentGP.fp3 },
+                { n: "QUALIFICHE", t: currentGP.quali }, { n: "SPRINT", t: currentGP.sprint }, { n: "GARA", t: currentGP.race }
+            ].filter(s => s.t && new Date(s.t) > now);
+
+            if (sessions.length > 0) {
+                const next = sessions[0];
+                document.getElementById('hero-next-session').innerText = `${next.n}: ${new Date(next.t).toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}`;
+                document.getElementById('hero-status').innerText = "PROSSIMA SESSIONE";
+            }
+            document.getElementById('hero-deadline').innerText = "DEADLINE INVIO: " + deadline.toLocaleString();
+        }
+
+        function renderTable(headers, teams) {
+            const table = document.getElementById('data-table');
+            let html = `<thead class="bg-slate-900 text-slate-400 font-mono uppercase border-b border-slate-800"><tr>`;
+            headers.forEach(h => html += `<th class="p-4">${h}</th>`);
+            html += `</tr></thead><tbody class="divide-y divide-slate-800">`;
+            teams.forEach(row => {
+                html += `<tr class="hover:bg-slate-800/30">`;
+                row.forEach((cell, i) => {
+                    const isTotal = i === headers.length - 1;
+                    html += `<td class="p-4 ${isTotal ? 'font-bold text-red-500' : ''}">${cell}</td>`;
+                });
+                html += `</tr>`;
+            });
+            table.innerHTML = html + `</tbody>`;
+        }
+
+        function renderLeaderboard(teams) {
+            const container = document.getElementById('side-ranking');
+            const sorted = [...teams].sort((a, b) => parseFloat(b[b.length-1]) - parseFloat(a[a.length-1])).slice(0, 5);
+            container.innerHTML = sorted.map((t, i) => `
+                <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg font-black italic text-red-600">#${i+1}</span>
+                        <div><p class="font-bold text-xs uppercase text-white">${t[1]}</p><p class="text-[9px] text-slate-500 font-mono">${t[0]}</p></div>
+                    </div>
+                    <span class="font-mono font-bold text-white text-xs">${t[t.length-1]}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderChart(headers, teams) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            const gpLabels = headers.slice(2, -1);
+            if (mainChart) mainChart.destroy();
+            
+            const datasets = teams.map((team, idx) => {
+                let cumulative = 0;
+                return {
+                    label: team[1],
+                    data: team.slice(2, -1).map(p => cumulative += (parseFloat(p) || 0)),
+                    borderColor: `hsl(${(idx * 137) % 360}, 70%, 50%)`,
+                    borderWidth: 2, tension: 0.3, pointRadius: 2
+                };
+            });
+
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: gpLabels, datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } },
+                        x: { grid: { display: false }, ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+        }
+
+        initDashboard();
     </script>
 </body>
 </html>
