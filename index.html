@@ -120,36 +120,47 @@
             }
         }
 
-        function updateHero(schedule) {
-            const now = new Date();
-            const currentGP = schedule.find(gp => gp.race && new Date(gp.race) > now);
-            if (!currentGP) return;
+function updateHero(schedule) {
+    const now = new Date();
+    // Trova il GP corrente (quello la cui gara deve ancora avvenire)
+    const currentGP = schedule.find(gp => gp.race && new Date(gp.race) > now);
+    
+    if (!currentGP) return;
 
-            const banner = document.getElementById('market-banner');
-            const deadline = new Date(currentGP.deadline);
-            
-            if (now < deadline) {
-                banner.innerText = `🟢 MERCATO APERTO - CHIUSURA: ${deadline.toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}`;
-                banner.className = "bg-green-600 text-white py-2 text-center font-bold text-[10px] uppercase tracking-widest";
-            } else {
-                banner.innerText = "🔴 MERCATO CHIUSO - FORMAZIONI BLOCCATE";
-                banner.className = "bg-red-600 text-white py-2 text-center font-bold text-[10px] uppercase tracking-widest animate-pulse";
-            }
+    const banner = document.getElementById('market-banner');
+    
+    // LOGICA DEADLINE DINAMICA:
+    // Se c'è una Sprint, la deadline è basata sulla Sprint. Altrimenti sulle Qualifiche.
+    const referenceSession = (currentGP.sprint && currentGP.sprint !== "") ? currentGP.sprint : currentGP.quali;
+    
+    const deadlineDate = new Date(referenceSession);
+    deadlineDate.setHours(deadlineDate.getHours() - 1); // Chiude 1 ora prima della sessione
 
-            document.getElementById('hero-gp-name').innerText = currentGP.gp.toUpperCase();
-            
-            const sessions = [
-                { n: "FP1", t: currentGP.fp1 }, { n: "FP2", t: currentGP.fp2 }, { n: "FP3", t: currentGP.fp3 },
-                { n: "QUALIFICHE", t: currentGP.quali }, { n: "SPRINT", t: currentGP.sprint }, { n: "GARA", t: currentGP.race }
-            ].filter(s => s.t && new Date(s.t) > now);
+    // Controllo Stato Mercato
+    if (now < deadlineDate) {
+        banner.innerText = `🟢 MERCATO APERTO - CHIUSURA: ${deadlineDate.toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}`;
+        banner.className = "bg-green-600 text-white py-2 text-center font-bold text-[10px] uppercase tracking-widest";
+    } else {
+        banner.innerText = "🔴 MERCATO CHIUSO - FORMAZIONI BLOCCATE";
+        banner.className = "bg-red-600 text-white py-2 text-center font-bold text-[10px] uppercase tracking-widest animate-pulse";
+    }
 
-            if (sessions.length > 0) {
-                const next = sessions[0];
-                document.getElementById('hero-next-session').innerText = `${next.n}: ${new Date(next.t).toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}`;
-                document.getElementById('hero-status').innerText = "PROSSIMA SESSIONE";
-            }
-            document.getElementById('hero-deadline').innerText = "DEADLINE INVIO: " + deadline.toLocaleString();
-        }
+    // Update Testi Hero
+    document.getElementById('hero-gp-name').innerText = currentGP.gp.toUpperCase();
+    
+    const sessions = [
+        { n: "FP1", t: currentGP.fp1 }, { n: "FP2", t: currentGP.fp2 }, { n: "FP3", t: currentGP.fp3 },
+        { n: "QUALIFICHE", t: currentGP.quali }, { n: "SPRINT", t: currentGP.sprint }, { n: "GARA", t: currentGP.race }
+    ].filter(s => s.t && new Date(s.t) > now);
+
+    if (sessions.length > 0) {
+        const next = sessions[0];
+        document.getElementById('hero-next-session').innerText = `${next.n}: ${new Date(next.t).toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}`;
+        document.getElementById('hero-status').innerText = "PROSSIMA SESSIONE";
+    }
+    
+    document.getElementById('hero-deadline').innerText = "DEADLINE INVIO: " + deadlineDate.toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'});
+}
 
         function renderTable(headers, teams) {
             const table = document.getElementById('data-table');
